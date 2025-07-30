@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Gateway Integration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .payment-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #1e293b;
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        .payment-form {
+            padding: 30px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            flex: 1;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #475569;
+            box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.1);
+        }
+        
+        .amount-input {
+            position: relative;
+        }
+        
+        .amount-input::before {
+            content: '₹';
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: bold;
+            color: #6b7280;
+        }
+        
+        .amount-input input {
+            padding-left: 36px;
+        }
+        
+        .payment-methods {
+            padding: 30px;
+        }
+        
+        .methods-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #1f2937;
+            text-align: center;
+        }
+        
+        .payment-method {
+            margin-bottom: 16px;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .payment-method::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+        
+        .payment-method:hover {
+            border-color: #475569;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .payment-method:hover::before {
+            left: 100%;
+        }
+        
+        .payment-method h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .payment-method p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .payment-result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            display: none;
+        }
+        
+        .payment-result.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .qr-section {
+            text-align: center;
+            padding: 30px;
+            background: #f0f9ff;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .app-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .app-button {
+            padding: 12px 20px;
+            background: #475569;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .app-button:hover {
+            background: #334155;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .transaction-info {
+            background: #ecfdf5;
+            border: 1px solid #10b981;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+        
+        .transaction-info h4 {
+            color: #047857;
+            margin-bottom: 8px;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        
+        .status-success {
+            background: #d1fae5;
+            color: #059669;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .app-buttons {
+                flex-direction: column;
+            }
+            
+            .app-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <div class="header">
+            <h1>Secure Payment</h1>
+            <p>Choose your preferred payment method</p>
+        </div>
+        
+        <div class="payment-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="amount">Amount</label>
+                    <div class="amount-input">
+                        <input type="number" id="amount" value="500" min="1" required>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="phone">Mobile Number</label>
+                    <input type="tel" id="phone" placeholder="9876543210" pattern="[0-9]{10}">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="user@example.com">
+                </div>
+            </div>
+        </div>
+        
+        <div class="payment-methods">
+            <h2 class="methods-title">Select Payment Method</h2>
+            
+            <div class="payment-method" onclick="initiatePayment('upi')">
+                <h3>UPI Payment</h3>
+                <p>Pay using any UPI app - Google Pay, PhonePe, Paytm, BHIM, Amazon Pay</p>
+            </div>
+            
+            <div class="payment-method" onclick="initiatePayment('paytm')">
+                <h3>Paytm</h3>
+                <p>Pay using Paytm Wallet, UPI, Credit/Debit Cards, Net Banking</p>
+            </div>
+            
+            <div class="payment-method" onclick="initiatePayment('phonepe')">
+                <h3>PhonePe</h3>
+                <p>Pay using PhonePe Wallet, UPI, Credit/Debit Cards</p>
+            </div>
+            
+            <div class="payment-method" onclick="initiatePayment('googlepay')">
+                <h3>Google Pay</h3>
+                <p>Pay using Google Pay UPI or saved payment methods</p>
+            </div>
+            
+            <div class="payment-method" onclick="initiatePayment('razorpay')">
+                <h3>Cards & Net Banking</h3>
+                <p>Credit Cards, Debit Cards, Net Banking, EMI options</p>
+            </div>
+        </div>
+        
+        <div id="paymentResult" class="payment-result"></div>
+    </div>
+
+    <script>
+        let currentTransactionId = null;
+        let paymentTimer = null;
+        
+        function generateTransactionId() {
+            return 'TXN_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9).toUpperCase();
+        }
+        
+        function validateForm() {
+            const amount = document.getElementById('amount').value;
+            const phone = document.getElementById('phone').value;
+            const email = document.getElementById('email').value;
+            
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount');
+                return false;
+            }
+            
+            if (phone && !/^[0-9]{10}$/.test(phone)) {
+                alert('Please enter a valid 10-digit mobile number');
+                return false;
+            }
+            
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                alert('Please enter a valid email address');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function initiatePayment(method) {
+            if (!validateForm()) return;
+            
+            const amount = document.getElementById('amount').value;
+            const phone = document.getElementById('phone').value;
+            const email = document.getElementById('email').value;
+            
+            currentTransactionId = generateTransactionId();
+            
+            // Show loading state
+            const resultDiv = document.getElementById('paymentResult');
+            resultDiv.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <div class="loading"></div>
+                    <p style="margin-top: 10px;">Initiating payment...</p>
+                </div>
+            `;
+            resultDiv.classList.add('show');
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                handlePaymentResponse(method, {
+                    amount: parseFloat(amount),
+                    phone: phone,
+                    email: email,
+                    transaction_id: currentTransactionId
+                });
+            }, 1500);
+        }
+        
+        function handlePaymentResponse(method, data) {
+            const resultDiv = document.getElementById('paymentResult');
+            let content = '';
+            
+            switch(method) {
+                case 'upi':
+                    content = generateUPIInterface(data);
+                    break;
+                case 'paytm':
+                    content = generatePaytmInterface(data);
+                    break;
+                case 'phonepe':
+                    content = generatePhonePeInterface(data);
+                    break;
+                case 'googlepay':
+                    content = generateGooglePayInterface(data);
+                    break;
+                case 'razorpay':
+                    content = generateRazorpayInterface(data);
+                    break;
+            }
+            
+            resultDiv.innerHTML = content;
+            resultDiv.style.background = '#f8fafc';
+            resultDiv.style.border = '1px solid #e2e8f0';
+            
+            // Start payment monitoring
+            startPaymentMonitoring();
+        }
+        
+        function generateUPIInterface(data) {
+            const upiId = 'merchant@upi';
+            const upiString = `upi://pay?pa=${upiId}&pn=Merchant&am=${data.amount}&cu=INR&tn=Payment%20for%20${data.transaction_id}`;
+            
+            return `
+                <h3 style="text-align: center; margin-bottom: 20px; color: #1f2937;">
+                    UPI Payment - ₹${data.amount}
+                </h3>
+                
+                <div class="qr-section">
+                    <div class="qr-code">📱</div>
+                    <p style="font-weight: 600; margin-bottom: 10px;">Scan QR code with any UPI app</p>
+                    <p style="color: #6b7280; font-size: 14px;">Or click on your preferred app below</p>
+                </div>
+                
+                <div class="app-buttons">
+                    <button class="app-button" onclick="openUPIApp('googlepay', '${upiString}')">Google Pay</button>
+                    <button class="app-button" onclick="openUPIApp('phonepe', '${upiString}')">PhonePe</button>
+                    <button class="app-button" onclick="openUPIApp('paytm', '${upiString}')">Paytm</button>
+                    <button class="app-button" onclick="openUPIApp('bhim', '${upiString}')">BHIM</button>
+                    <button class="app-button" onclick="openUPIApp('amazonpay', '${upiString}')">Amazon Pay</button>
+                </div>
+                
+                <div class="transaction-info">
+                    <h4>Transaction Details</h4>
+                    <p><strong>Transaction ID:</strong> ${data.transaction_id}</p>
+                    <p><strong>Amount:</strong> ₹${data.amount}</p>
+                    <p><strong>UPI ID:</strong> ${upiId}</p>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <span class="status-indicator status-pending">
+                        <div class="loading"></div>
+                        Waiting for payment confirmation
+                    </span>
+                </div>
+            `;
+        }
+        
+        function generatePaytmInterface(data) {
+            return `
+                <h3 style="text-align: center; margin-bottom: 20px; color: #1f2937;">
+                    Paytm Payment - ₹${data.amount}
+                </h3>
+                
+                <div style="text-align: center; padding: 30px;">
+                    <div style="font-size: 64px; margin-bottom: 20px;">💙</div>
+                    <p style="font-size: 18px; font-weight: 600; margin-bottom: 10px;">Opening Paytm...</p>
+                    <p style="color: #6b7280;">Complete your payment in the Paytm app</p>
+                </div>
+                
+                <div class="app-buttons">
+                    <button class="app-button" onclick="simulateAppRedirect('Paytm')">Open Paytm App</button>
+                    <button class="app-button" onclick="simulateWebRedirect('Paytm')">Continue on Web</button>
+                </div>
+                
+                <div class="transaction-info">
+                    <h4>Transaction Details</h4>
+                    <p><strong>Transaction ID:</strong> ${data.transaction_id}</p>
+                    <p><strong>Amount:</strong> ₹${data.amount}</p>
+                    <p><strong>Merchant:</strong> Demo Store</p>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <span class="status-indicator status-pending">
+                        <div class="loading"></div>
+                        Waiting for payment confirmation
+                    </span>
+                </div>
+            `;
+        }
+        
+        function generatePhonePeInterface(data) {
+            return `
+                <h3 style="text-align: center; margin-bottom: 20px; color: #1f2937;">
+                    PhonePe Payment - ₹${data.amount}
+                </h3>
+                
+                <div style="text-align: center; padding: 30px;">
+                    <div style="font-size: 64px; margin-bottom: 20px;">🟣</div>
+                    <p style="font-size: 18px; font-weight: 600; margin-bottom: 10px;">Opening PhonePe...</p>
+                    <p style="color: #6b7280;">Complete your payment in the PhonePe app</p>
+                </div>
+                
+                <div class="app-buttons">
+                    <button class="app-button" onclick="simulateAppRedirect('PhonePe')">Open PhonePe App</button>
+                    <button class="app-button" onclick="simulateWebRedirect('PhonePe')">Continue on Web</button>
+                </div>
+                
+                <div class="transaction-info">
+                    <h4>Transaction Details</h4>
+                    <p><strong>Transaction ID:</strong> ${data.transaction_id}</p>
+                    <p><strong>Amount:</strong> ₹${data.amount}</p>
+                    <p><strong>Merchant:</strong> Demo Store</p>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <span class="status-indicator status-pending">
+                        <div class="loading"></div>
+                        Waiting for payment confirmation
+                    </span>
+                </div>
+            `;
+        }
+        
+        function generateGooglePayInterface(data) {
+            return `
+                <h3 style="text-align: center; margin-bottom: 20px; color: #1f2937;">
+                    Google Pay - ₹${data.amount}
+                </h3>
+                
+                <div style="text-align: center; padding: 30px;">
+                    <div style="font-size: 64px; margin-bottom: 20px;">🟢</div>
+                    <p style="font-size: 18px; font-weight: 600; margin-bottom: 10px;">Pay with Google Pay</p>
+                    <p style="color: #6b7280;">Fast, simple and secure payments</p>
+                </div>
+                
+                <div class="app-buttons">
+                    <button class="app-button" onclick="simulateGooglePay()" style="background: #4285f4;">Pay with Google Pay</button>
+                    <button class="app-button" onclick="simulateAppRedirect('Google Pay')">Open Google Pay App</button>
+                </div>
+                
+                <div class="transaction-info">
+                    <h4>Transaction Details</h4>
+                    <p><strong>Transaction ID:</strong> ${data.transaction_id}</p>
+                    <p><strong>Amount:</strong> ₹${data.amount}</p>
+                    <p><strong>Merchant:</strong> Demo Store</p>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <span class="status-indicator status-pending">
+                        <div class="loading"></div>
+                        Waiting for payment confirmation
+                    </span>
+                </div>
+            `;
+        }
+        
+        function generateRazorpayInterface(data) {
+            return `
+                <h3 style="text-align: center; margin-bottom: 20px; color: #1f2937;">
+                    Cards & Net Banking - ₹${data.amount}
+                </h3>
+                
+                <div style="text-align: center; padding: 30px;">
+                    <div style="font-size: 64px; margin-bottom: 20px;">💳</div>
+                    <p style="font-size: 18px; font-weight: 600; margin-bottom: 10px;">Secure Payment Gateway</p>
+                    <p style="color: #6b7280;">Credit/Debit Cards, Net Banking, EMI</p>
+                </div>
+                
+                <div class="app-buttons">
+                    <button class="app-button" onclick="simulateCardPayment()">Pay with Card</button>
+                    <button class="app-button" onclick="simulateNetBanking()">Net Banking</button>
+                    <button class="app-button" onclick="simulateEMI()">EMI Options</button>
+                </div>
+                
+                <div class="transaction-info">
+                    <h4>Transaction Details</h4>
+                    <p><strong>Transaction ID:</strong> ${data.transaction_id}</p>
+                    <p><strong>Amount:</strong> ₹${data.amount}</p>
+                    <p><strong>Merchant:</strong> Demo Store</p>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <span class="status-indicator status-pending">
+                        <div class="loading"></div>
+                        Waiting for payment confirmation
+                    </span>
+                </div>
+            `;
+        }
+        
+        function openUPIApp(app, upiString) {
+            alert(`Opening ${app.replace(/([A-Z])/g, ' $1').trim()} app...`);
+            // In a real implementation, this would open the UPI app
+            simulatePaymentProcess();
+        }
+        
+        function simulateAppRedirect(appName) {
+            alert(`Redirecting to ${appName} app...`);
+            simulatePaymentProcess();
+        }
+        
+        function simulateWebRedirect(appName) {
+            alert(`Opening ${appName} web interface...`);
+            simulatePaymentProcess();
+        }
+        
+        function simulateGooglePay() {
+            alert('Initiating Google Pay payment...');
+            simulatePaymentProcess();
+        }
+        
+        function simulateCardPayment() {
+            alert('Opening secure card payment form...');
+            simulatePaymentProcess();
+        }
+        
+        function simulateNetBanking() {
+            alert('Redirecting to bank login page...');
+            simulatePaymentProcess();
+        }
+        
+        function simulateEMI() {
+            alert('Loading EMI options...');
+            simulatePaymentProcess();
+        }
+        
+        function simulatePaymentProcess() {
+            // Simulate payment processing time
+            setTimeout(() => {
+                const isSuccess = Math.random() > 0.2; // 80% success rate
+                updatePaymentStatus(isSuccess);
+            }, 3000 + Math.random() * 2000);
+        }
+        
+        function startPaymentMonitoring() {
+            // Simulate automatic payment completion after 8-15 seconds
+            paymentTimer = setTimeout(() => {
+                const isSuccess = Math.random() > 0.15; // 85% success rate
+                updatePaymentStatus(isSuccess);
+            }, 8000 + Math.random() * 7000);
+        }
+        
+        function updatePaymentStatus(isSuccess) {
+            if (paymentTimer) {
+                clearTimeout(paymentTimer);
+                paymentTimer = null;
+            }
+            
+            const statusElement = document.querySelector('.status-indicator');
+            if (!statusElement) return;
+            
+            if (isSuccess) {
+                statusElement.className = 'status-indicator status-success';
+                statusElement.innerHTML = '✅ Payment Successful!';
+                
+                // Show success message
+                setTimeout(() => {
+                    alert(`Payment of ₹${document.getElementById('amount').value} completed successfully!\nTransaction ID: ${currentTransactionId}`);
+                }, 500);
+            } else {
+                statusElement.className = 'status-indicator';
+                statusElement.style.background = '#fee2e2';
+                statusElement.style.color = '#dc2626';
+                statusElement.innerHTML = '❌ Payment Failed - Please try again';
+            }
+        }
+        
+        // Format amount input
+        document.getElementById('amount').addEventListener('input', function(e) {
+            let value = e.target.value;
+            if (value && !isNaN(value)) {
+                e.target.value = Math.max(1, parseInt(value));
+            }
+        });
+        
+        // Phone number formatting
+        document.getElementById('phone').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 10) {
+                value = value.slice(0, 10);
+            }
+            e.target.value = value;
+        });
+    </script>
+</body>
+</html>
