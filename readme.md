@@ -1,6 +1,7 @@
 # Payment Gateway Integration Demo
 
 A professional, responsive payment gateway integration demo showcasing Indian payment methods including UPI, digital wallets, and traditional payment options.
+<img width="935" height="902" alt="image" src="https://github.com/user-attachments/assets/21351c14-4b8c-4f83-a1f3-c9d48d667a23" />
 
 ## 🚀 Features
 
