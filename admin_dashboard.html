@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Platform Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.22.9/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-chartjs-2@5.2.0/dist/index.umd.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const navigation = [
+            { name: 'Overview', icon: '📊', id: 'overview' },
+            { name: 'Transactions', icon: '💳', id: 'transactions' },
+            { name: 'Customers', icon: '👥', id: 'customers' },
+            { name: 'Analytics', icon: '📈', id: 'analytics' },
+            { name: 'Settings', icon: '⚙️', id: 'settings' },
+            { name: 'API', icon: '🔌', id: 'api' },
+        ];
+
+        const transactionsData = [
+            { id: '#TXN-2024-001', customer: 'John Doe', amount: 249.99, method: 'Credit Card', status: 'success', date: '2024-07-31 14:23' },
+            { id: '#TXN-2024-002', customer: 'Jane Smith', amount: 89.50, method: 'PayPal', status: 'pending', date: '2024-07-31 14:18' },
+            { id: '#TXN-2024-003', customer: 'Bob Wilson', amount: 156.75, method: 'Credit Card', status: 'failed', date: '2024-07-31 14:15' },
+        ];
+
+        const customersData = [
+            { id: '#CUST-001', name: 'John Doe', email: 'john@example.com', totalSpent: 1249.99, transactions: 12, lastActive: '2024-07-31' },
+        ];
+
+        const Sidebar = ({ activeSection, setActiveSection }) => (
+            <div className="w-64 bg-gray-900 text-white h-screen p-6 fixed">
+                <div className="text-2xl font-bold mb-10">PaymentPro</div>
+                <nav>
+                    {navigation.map(item => (
+                        <button
+                            key={item.id}
+                            className={`flex items-center w-full p-3 mb-2 rounded-lg transition-colors ${
+                                activeSection === item.id ? 'bg-blue-600' : 'hover:bg-gray-800'
+                            }`}
+                            onClick={() => setActiveSection(item.id)}
+                        >
+                            <span className="mr-3">{item.icon}</span>
+                            {item.name}
+                        </button>
+                    ))}
+                </nav>
+            </div>
+        );
+
+        const Header = ({ title }) => {
+            const [search, setSearch] = useState('');
+            return (
+                <header className="flex justify-between items-center mb-8 p-6 bg-white shadow-sm">
+                    <h1 className="text-2xl font-semibold">{title}</h1>
+                    <div className="flex items-center gap-4">
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            placeholder="Search transactions, customers..."
+                            className="p-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                        <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
+                        <span>John Admin</span>
+                        <button className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">Logout</button>
+                    </div>
+                </header>
+            );
+        };
+
+        const StatCard = ({ label, value, trend, trendColor }) => (
+            <div className="p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-sm text-gray-500 uppercase">{label}</div>
+                <div className="text-3xl font-bold my-2">{value}</div>
+                <div className={`text-sm ${trendColor}`}>{trend}</div>
+            </div>
+        );
+
+        const RevenueChart = () => {
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            useEffect(() => {
+                if (chartInstance.current) {
+                    chartInstance.current.destroy();
+                }
+
+                chartInstance.current = new Chart(chartRef.current, {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                        datasets: [{
+                            label: 'Revenue',
+                            data: [65000, 59000, 80000, 81000, 56000, 55000, 40000],
+                            borderColor: 'rgb(59, 130, 246)',
+                            tension: 0.4,
+                            fill: true,
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: { beginAtZero: true },
+                        },
+                    },
+                });
+
+                return () => {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                };
+            }, []);
+
+            return <canvas ref={chartRef}></canvas>;
+        };
+
+        const TransactionModal = ({ isOpen, onClose }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white p-8 rounded-xl max-w-md w-full">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-semibold">Create New Transaction</h3>
+                            <button onClick={onClose} className="text-2xl">&times;</button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Customer Email</label>
+                                <input type="email" className="w-full p-2 border rounded-lg" placeholder="customer@example.com" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Amount</label>
+                                <input type="number" className="w-full p-2 border rounded-lg" placeholder="0.00" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Description</label>
+                                <input type="text" className="w-full p-2 border rounded-lg" placeholder="Transaction description" />
+                            </div>
+                            <div className="flex gap-4 mt-6">
+                                <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Create Transaction</button>
+                                <button onClick={onClose} className="flex-1 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const OverviewSection = () => (
+            <div className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <StatCard label="Total Revenue" value="$284,592" trend="↑ 12% vs last month" trendColor="text-green-600" />
+                    <StatCard label="Transactions" value="15,847" trend="↑ 8% vs last month" trendColor="text-green-600" />
+                    <StatCard label="Success Rate" value="98.2%" trend="↓ 0.3% vs last month" trendColor="text-red-600" />
+                    <StatCard label="Active Customers" value="3,247" trend="↑ 15% vs last month" trendColor="text-green-600" />
+                </div>
+                <div className="bg-white p-6 rounded-xl shadow-sm">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold">Revenue Trend</h3>
+                        <select className="p-2 border rounded-lg">
+                            <option>Last 7 days</option>
+                            <option>Last 30 days</option>
+                            <option>Last 3 months</option>
+                        </select>
+                    </div>
+                    <RevenueChart />
+                </div>
+                <div className="bg-white p-6 rounded-xl shadow-sm">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold">Recent Transactions</h3>
+                        <button className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">View All</button>
+                    </div>
+                    <table className="w-full">
+                        <thead>
+                            <tr className="bg-gray-50">
+                                <th className="p-3 text-left">Transaction ID</th>
+                                <th className="p-3 text-left">Customer</th>
+                                <th className="p-3 text-left">Amount</th>
+                                <th className="p-3 text-left">Status</th>
+                                <th className="p-3 text-left">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {transactionsData.map(tx => (
+                                <tr key={tx.id} className="border-t">
+                                    <td className="p-3">{tx.id}</td>
+                                    <td className="p-3">{tx.customer}</td>
+                                    <td className="p-3">${tx.amount}</td>
+                                    <td className="p-3">
+                                        <span className={`px-2 py-1 rounded text-xs ${
+                                            tx.status === 'success' ? 'bg-green-100 text-green-800' :
+                                            tx.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                            'bg-red-100 text-red-800'
+                                        }`}>
+                                            {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
+                                        </span>
+                                    </td>
+                                    <td className="p-3">{tx.date}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+
+        const TransactionsSection = ({ openModal }) => (
+            <div className="bg-white p-6 rounded-xl shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">All Transactions</h3>
+                    <div className="flex gap-4">
+                        <button onClick={() => openModal('transaction')} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">+ New Transaction</button>
+                        <button className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">Export CSV</button>
+                    </div>
+                </div>
+                <div className="flex gap-4 mb-6">
+                    <select className="p-2 border rounded-lg">
+                        <option>All Status</option>
+                        <option>Success</option>
+                        <option>Pending</option>
+                        <option>Failed</option>
+                    </select>
+                    <input type="date" className="p-2 border rounded-lg" />
+                    <input type="date" className="p-2 border rounded-lg" />
+                </div>
+                <table className="w-full">
+                    <thead>
+                        <tr className="bg-gray-50">
+                            <th className="p-3 text-left">ID</th>
+                            <th className="p-3 text-left">Customer</th>
+                            <th className="p-3 text-left">Amount</th>
+                            <th className="p-3 text-left">Payment Method</th>
+                            <th className="p-3 text-left">Status</th>
+                            <th className="p-3 text-left">Date</th>
+                            <th className="p-3 text-left">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {transactionsData.map(tx => (
+                            <tr key={tx.id} className="border-t">
+                                <td className="p-3">{tx.id}</td>
+                                <td className="p-3">{tx.customer}</td>
+                                <td className="p-3">${tx.amount}</td>
+                                <td className="p-3">{tx.method}</td>
+                                <td className="p-3">
+                                    <span className={`px-2 py-1 rounded text-xs ${
+                                        tx.status === 'success' ? 'bg-green-100 text-green-800' :
+                                        tx.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                        'bg-red-100 text-red-800'
+                                    }`}>
+                                        {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
+                                    </span>
+                                </td>
+                                <td className="p-3">{tx.date}</td>
+                                <td className="p-3">
+                                    <button className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200">
+                                        {tx.status === 'pending' ? 'Refund' : 'View'}
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        );
+
+        const CustomersSection = () => (
+            <div className="bg-white p-6 rounded-xl shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Customer Management</h3>
+                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">+ Add Customer</button>
+                </div>
+                <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center mb-6">
+                    Customer Acquisition Chart
+                </div>
+                <table className="w-full">
+                    <thead>
+                        <tr className="bg-gray-50">
+                            <th className="p-3 text-left">Customer ID</th>
+                            <th className="p-3 text-left">Name</th>
+                            <th className="p-3 text-left">Email</th>
+                            <th className="p-3 text-left">Total Spent</th>
+                            <th className="p-3 text-left">Transactions</th>
+                            <th className="p-3 text-left">Last Active</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {customersData.map(customer => (
+                            <tr key={customer.id} className="border-t">
+                                <td className="p-3">{customer.id}</td>
+                                <td className="p-3">{customer.name}</td>
+                                <td className="p-3">{customer.email}</td>
+                                <td className="p-3">${customer.totalSpent}</td>
+                                <td className="p-3">{customer.transactions}</td>
+                                <td className="p-3">{customer.lastActive}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        );
+
+        const AnalyticsSection = () => (
+            <div className="space-y-6">
+                <div className="bg-white p-6 rounded-xl shadow-sm">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold">Payment Analytics</h3>
+                        <select className="p-2 border rounded-lg">
+                            <option>Last 30 days</option>
+                            <option>Last 3 months</option>
+                            <option>Last year</option>
+                        </select>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+                            Payment Methods Distribution
+                        </div>
+                        <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+                            Transaction Volume by Hour
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white p-6 rounded-xl shadow-sm">
+                    <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+                        Revenue Trends & Forecasting
+                    </div>
+                </div>
+            </div>
+        );
+
+        const SettingsSection = () => (
+            <div className="bg-white p-6 rounded-xl shadow-sm">
+                <h3 className="text-lg font-semibold mb-4">Payment Settings</h3>
+                <div className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Merchant Name</label>
+                        <input type="text" className="w-full p-2 border rounded-lg" defaultValue="Your Business Name" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Supported Payment Methods</label>
+                        <div className="grid grid-cols-3 gap-4 mt-2">
+                            {['Credit Cards', 'PayPal', 'Apple Pay', 'Google Pay', 'Bank Transfer', 'Cryptocurrency'].map(method => (
+                                <label key={method} className="flex items-center gap-2">
+                                    <input type="checkbox" defaultChecked={['Credit Cards', 'PayPal'].includes(method)} />
+                                    {method}
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Transaction Fees</label>
+                        <input type="text" className="w-full p-2 border rounded-lg" defaultValue="2.9% + $0.30" />
+                    </div>
+                    <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save Settings</button>
+                </div>
+            </div>
+        );
+
+        const ApiSection = () => (
+            <div className="bg-white p-6 rounded-xl shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">API Configuration</h3>
+                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Generate New Key</button>
+                </div>
+                <div className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">API Key</label>
+                        <input type="text" className="w-full p-2 border rounded-lg" defaultValue="pk_live_xxxxxxxxxxxxxxxx" readOnly />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Webhook URL</label>
+                        <input type="text" className="w-full p-2 border rounded-lg" placeholder="https://yoursite.com/webhook" />
+                    </div>
+                    <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+                        API Documentation & Code Examples
+                    </div>
+                </div>
+            </div>
+        );
+
+        const App = () => {
+            const [activeSection, setActiveSection] = useState('overview');
+            const [modalOpen, setModalOpen] = useState(null);
+
+            const titles = {
+                overview: 'Dashboard Overview',
+                transactions: 'Transaction Management',
+                customers: 'Customer Management',
+                analytics: 'Payment Analytics',
+                settings: 'Settings',
+                api: 'API Configuration',
+            };
+
+            const openModal = (type) => setModalOpen(type);
+            const closeModal = () => setModalOpen(null);
+
+            return (
+                <div className="flex bg-gray-100 min-h-screen">
+                    <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} />
+                    <div className="flex-1 ml-64 p-6">
+                        <Header title={titles[activeSection]} />
+                        {activeSection === 'overview' && <OverviewSection />}
+                        {activeSection === 'transactions' && <TransactionsSection openModal={openModal} />}
+                        {activeSection === 'customers' && <CustomersSection />}
+                        {activeSection === 'analytics' && <AnalyticsSection />}
+                        {activeSection === 'settings' && <SettingsSection />}
+                        {activeSection === 'api' && <ApiSection />}
+                        <TransactionModal isOpen={modalOpen === 'transaction'} onClose={closeModal} />
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
